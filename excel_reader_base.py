@@ -484,19 +484,3 @@ class ExcelReaderBase:
             for schema in self.project.schemas
             for table in schema.tables
         )
-
-    ###########################################################################
-    # Métodos de carga
-    ###########################################################################
-
-    def _load_catalog(self) -> None:
-        """Implementado en la Parte 3."""
-        pass
-
-    def _load_esri(self) -> None:
-        """Implementado en la Parte 3."""
-        pass
-
-    def _load_mgn(self) -> None:
-        """Implementado en la Parte 3."""
-        pass
