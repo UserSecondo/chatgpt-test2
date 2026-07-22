@@ -74,9 +74,7 @@ def main() -> int:
         # ---------------------------------------------------------------------
 
         logger.info("Cargando configuración...")
-
         config = Config()
-
         logger.info("Configuración cargada correctamente.")
 
         # ---------------------------------------------------------------------
@@ -84,23 +82,37 @@ def main() -> int:
         # ---------------------------------------------------------------------
 
         logger.info("Leyendo fuentes de información...")
-
         reader = ExcelReader(config)
-
         project_metadata = reader.read()
-
         logger.info("Lectura finalizada correctamente.")
+
+        logger.info(
+            "Esquemas leídos: %s",
+            project_metadata.summary.processed_schemas,
+        )
+        logger.info(
+            "Tablas leídas: %s",
+            project_metadata.summary.processed_tables,
+        )
+        logger.info(
+            "Campos leídos: %s",
+            project_metadata.summary.processed_fields,
+        )
+        logger.info(
+            "Advertencias generadas: %s",
+            len(project_metadata.warnings),
+        )
+
+        for warning in project_metadata.warnings:
+            logger.warning(warning)
 
         # ---------------------------------------------------------------------
         # Aplicación de reglas de negocio
         # ---------------------------------------------------------------------
 
         logger.info("Resolviendo metadatos...")
-
         resolver = MetadataResolver()
-
         resolved_metadata = resolver.resolve(project_metadata)
-
         logger.info("Metadatos resueltos correctamente.")
 
         # ---------------------------------------------------------------------
@@ -108,11 +120,8 @@ def main() -> int:
         # ---------------------------------------------------------------------
 
         logger.info("Generando diccionarios de datos...")
-
         writer = ExcelWriter(config)
-
         writer.generate(resolved_metadata)
-
         logger.info("Diccionarios generados correctamente.")
 
         # ---------------------------------------------------------------------
