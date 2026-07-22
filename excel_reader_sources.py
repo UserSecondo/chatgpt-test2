@@ -102,14 +102,17 @@ class ExcelReaderSources:
                 row.get("domain", ""),
             )
 
-            self._assign_by_priority(
-                field,
-                "description",
-                "description_source",
-                "field_description",
-                row.get("description", ""),
-                "esri",
-            )
+            description = row.get("description", "")
+
+            if not self._is_placeholder_description(description, field_name):
+                self._assign_by_priority(
+                    field,
+                    "description",
+                    "description_source",
+                    "field_description",
+                    description,
+                    "esri",
+                )
 
             self._assign_if_empty(
                 field,
@@ -157,6 +160,9 @@ class ExcelReaderSources:
             for field_name, description in self._iter_mgn_blocks(sheet):
 
                 if not field_name or not description:
+                    continue
+
+                if self._is_placeholder_description(description, field_name):
                     continue
 
                 mgn_descriptions.setdefault(field_name, description)
@@ -227,6 +233,181 @@ class ExcelReaderSources:
                 str(field_name).strip().upper(),
                 str(description).strip() if description is not None else "",
             )
+
+    ###########################################################################
+    # Diccionario de siglas MGN
+    ###########################################################################
+
+    def _load_siglas_mgn(self) -> None:
+        """
+        Procesa el diccionario de siglas MGN (glosario adicional
+        de nombres de campo estándar, más amplio que las hojas
+        MGN originales).
+        """
+
+        workbook = self._open_workbook("siglas_mgn")
+
+        try:
+            self._read_siglas_mgn(workbook)
+        finally:
+            workbook.close()
+
+    def _read_siglas_mgn(self, workbook: Workbook) -> None:
+        """
+        Enriquece los campos utilizando el diccionario de siglas
+        MGN. Al igual que las hojas MGN, funciona por NOMBRE de
+        campo, de forma global (sin esquema ni tabla).
+        """
+
+        sheet = workbook[SHEETS["siglas_mgn"]]
+
+        descriptions: dict[str, str] = {}
+
+        for sigla, nombre in sheet.iter_rows(min_row=2, values_only=True):
+
+            if not sigla or not nombre:
+                continue
+
+            sigla = str(sigla).strip().upper()
+            nombre = str(nombre).strip()
+
+            if self._is_placeholder_description(nombre, sigla):
+                continue
+
+            descriptions.setdefault(sigla, nombre)
+
+        if not descriptions:
+            return
+
+        for schema in self.project.schemas:
+            for table in schema.tables:
+                for field in table.fields:
+
+                    description = descriptions.get(field.field_name)
+
+                    if description is None:
+                        continue
+
+                    self._assign_by_priority(
+                        field,
+                        "description",
+                        "description_source",
+                        "field_description",
+                        description,
+                        "siglas_mgn",
+                    )
+
+    ###########################################################################
+    # Catálogo de operaciones DANE (heurística de siglas)
+    ###########################################################################
+
+    def _load_operaciones_dane(self) -> None:
+        """
+        Procesa el catálogo de operaciones estadísticas del DANE
+        para inferir la descripción de esquemas y tablas cuyo
+        nombre contenga la sigla de una operación reconocida
+        (RN-009).
+
+        Esta es una inferencia, no una fuente oficial: solo se
+        aplica cuando ninguna otra fuente aportó una descripción.
+        """
+
+        workbook = self._open_workbook("operaciones_dane")
+
+        try:
+            operations = self._read_operaciones_dane(workbook)
+        finally:
+            workbook.close()
+
+        if not operations:
+            return
+
+        for schema in self.project.schemas:
+
+            if not schema.description:
+                inferred = self._infer_from_operations(
+                    schema.schema_name,
+                    operations,
+                )
+
+                if inferred:
+                    schema.description = inferred
+                    schema.description_source = "operaciones_dane"
+
+            for table in schema.tables:
+
+                if table.description:
+                    continue
+
+                inferred = self._infer_from_operations(
+                    table.table_name,
+                    operations,
+                )
+
+                if inferred:
+                    table.description = inferred
+                    table.description_source = "operaciones_dane"
+
+    @staticmethod
+    def _read_operaciones_dane(workbook: Workbook) -> dict[str, str]:
+        """
+        Lee el catálogo de operaciones DANE y devuelve un
+        diccionario SIGLA -> NOMBRE de la operación.
+        """
+
+        sheet = workbook[SHEETS["operaciones_dane"]]
+
+        operations: dict[str, str] = {}
+
+        for row in sheet.iter_rows(min_row=2, values_only=True):
+
+            if len(row) < 3:
+                continue
+
+            _, nombre, sigla = row[0], row[1], row[2]
+
+            if not sigla or not nombre:
+                continue
+
+            operations[str(sigla).strip().upper()] = str(nombre).strip()
+
+        return operations
+
+    @staticmethod
+    def _infer_from_operations(
+        name: str,
+        operations: dict[str, str],
+    ) -> str:
+        """
+        Intenta inferir una descripción a partir de los tokens
+        (separados por '_') del nombre de un esquema o tabla,
+        buscando coincidencia exacta con una sigla de operación
+        conocida.
+
+        Para evitar inferencias ambiguas, solo se acepta cuando
+        hay exactamente una sigla reconocida entre los tokens.
+        """
+
+        tokens = name.upper().split("_")
+
+        matches = [token for token in tokens if token in operations]
+
+        if len(matches) != 1:
+            return ""
+
+        acronym = matches[0]
+        full_name = operations[acronym]
+
+        period_tokens = [
+            token
+            for token in tokens
+            if token != acronym and token.isdigit()
+        ]
+
+        if period_tokens:
+            return f"{full_name} ({'-'.join(period_tokens)})"
+
+        return full_name
 
     ###########################################################################
     # Validación del modelo

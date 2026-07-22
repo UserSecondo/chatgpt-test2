@@ -84,6 +84,12 @@ INPUT_FILENAMES = {
     "mgn":
         "Diccionario_Datos_MGN_2005.xlsx",
 
+    "siglas_mgn":
+        "Diccionario_Siglas_MGN.xlsx",
+
+    "operaciones_dane":
+        "Siglas_Nombres_Catalogo_Operaciones_DANE.xlsx",
+
     "template":
         "Plantilla_Diccionario_Datos_DBGEODIG_AJUSTADO.xlsx"
 
@@ -143,7 +149,13 @@ SHEETS = {
 
         "URBANO"
 
-    ]
+    ],
+
+    "siglas_mgn":
+        "Diccionario Siglas",
+
+    "operaciones_dane":
+        "Operaciones DANE"
 
 }
 
@@ -344,6 +356,7 @@ PRIORITY = {
     "field_description": (
         "oracle",
         "esri",
+        "siglas_mgn",
         "mgn",
     ),
 
@@ -361,9 +374,11 @@ BUSINESS_RULES = {
     "RN-002": "Solo documentar tablas pertenecientes a los esquemas seleccionados.",
     "RN-003": "Los archivos complementarios únicamente enriquecen información.",
     "RN-004": "El responsable del esquema se obtiene por prioridad de fuentes.",
-    "RN-005": "La descripción del campo se obtiene por prioridad Oracle → ESRI → MGN.",
+    "RN-005": "La descripción del campo se obtiene por prioridad Oracle → ESRI → Diccionario de siglas MGN → hojas MGN.",
     "RN-006": "La descripción de la tabla se obtiene por prioridad Inventario → Catálogo.",
     "RN-007": "Si una fuente no tiene información continuar con la siguiente.",
+    "RN-008": "Una descripción idéntica al nombre del campo se considera vacía (no aporta información real).",
+    "RN-009": "Si ninguna fuente describe una tabla o esquema, se intenta inferir a partir del catálogo de siglas de operaciones DANE (heurística, no fuente oficial).",
 }
 
 # =============================================================================

@@ -101,6 +101,10 @@ class ExcelReaderBase:
 
         self._load_mgn()
 
+        self._load_siglas_mgn()
+
+        self._load_operaciones_dane()
+
         self._update_summary()
 
         self._validate_project()
@@ -590,6 +594,19 @@ class ExcelReaderBase:
             return
 
         setattr(obj, attribute, value)
+
+    @staticmethod
+    def _is_placeholder_description(value: str, name: str) -> bool:
+        """
+        RN-008: una fuente que documenta la descripción de un
+        campo como el mismo nombre del campo no está aportando
+        información real.
+        """
+
+        if not value or not name:
+            return False
+
+        return value.strip().upper() == name.strip().upper()
 
     def _is_documented(self, schema_name: str) -> bool:
         """

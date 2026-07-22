@@ -85,6 +85,12 @@ class Config:
             "mgn":
                 self.INPUT_DIR / "Diccionario_Datos_MGN_2005.xlsx",
 
+            "siglas_mgn":
+                self.INPUT_DIR / "Diccionario_Siglas_MGN.xlsx",
+
+            "operaciones_dane":
+                self.INPUT_DIR / "Siglas_Nombres_Catalogo_Operaciones_DANE.xlsx",
+
             "template":
                 self.INPUT_DIR / "Plantilla_Diccionario_Datos_DBGEODIG_AJUSTADO.xlsx"
 

@@ -168,14 +168,15 @@ class ExcelReaderOracle:
 
             value = row.get("description", "")
 
-            self._assign_by_priority(
-                field,
-                "description",
-                "description_source",
-                "field_description",
-                value,
-                "oracle",
-            )
+            if not self._is_placeholder_description(value, field_name):
+                self._assign_by_priority(
+                    field,
+                    "description",
+                    "description_source",
+                    "field_description",
+                    value,
+                    "oracle",
+                )
 
     ###########################################################################
     # Utilidad de asignación
