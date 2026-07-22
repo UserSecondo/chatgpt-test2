@@ -3,7 +3,7 @@
 Proyecto : BDD_GEO_DICTIONARY3
 Archivo  : models.py
 Autor    : Nelson David Martínez
-Versión  : 5.0
+Versión  : 5.1
 
 Descripción
 -----------
@@ -100,6 +100,14 @@ class TableInfo:
 
     fields: List[FieldInfo] = field(default_factory=list)
 
+    @property
+    def full_name(self) -> str:
+        """
+        Devuelve el nombre completo de la tabla.
+        """
+
+        return f"{self.schema_name}.{self.table_name}"
+
 
 # =============================================================================
 # ESQUEMA
@@ -122,6 +130,14 @@ class SchemaInfo:
     responsible_source: str = ""
 
     tables: List[TableInfo] = field(default_factory=list)
+
+    @property
+    def tables_count(self) -> int:
+        """
+        Devuelve el número de tablas del esquema.
+        """
+
+        return len(self.tables)
 
 
 # =============================================================================
@@ -150,7 +166,15 @@ class GenerationSummary:
 
     end_time: datetime | None = None
 
-    execution_time: timedelta = timedelta()
+    execution_time: timedelta = field(default_factory=timedelta)
+
+    @property
+    def has_timing(self) -> bool:
+        """
+        Indica si la ejecución tiene tiempos registrados.
+        """
+
+        return self.start_time is not None and self.end_time is not None
 
 
 # =============================================================================
@@ -172,3 +196,19 @@ class ProjectMetadata:
     warnings: List[str] = field(default_factory=list)
 
     errors: List[str] = field(default_factory=list)
+
+    @property
+    def has_warnings(self) -> bool:
+        """
+        Indica si el proyecto contiene advertencias.
+        """
+
+        return len(self.warnings) > 0
+
+    @property
+    def has_errors(self) -> bool:
+        """
+        Indica si el proyecto contiene errores.
+        """
+
+        return len(self.errors) > 0
