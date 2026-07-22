@@ -38,10 +38,12 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from openpyxl import load_workbook
+from openpyxl import Workbook, load_workbook
+from openpyxl.styles import Font
 from openpyxl.worksheet.worksheet import Worksheet
 
 from config import Config
+from metadata import OUTPUT_FILENAMES, VALUES
 from models import FieldInfo, ProjectMetadata, SchemaInfo, TableInfo
 
 _TEMPLATE_SHEET_NAME = "Diccionario_Datos"
@@ -90,6 +92,14 @@ class ExcelWriter:
 
             project.summary.generated_files += 1
 
+        missing_report_path = self._generate_missing_descriptions_report(
+            project
+        )
+
+        generated_paths.append(missing_report_path)
+
+        project.summary.generated_files += 1
+
         project.summary.end_time = datetime.now()
 
         if project.summary.start_time and project.summary.end_time:
@@ -98,6 +108,164 @@ class ExcelWriter:
             )
 
         return generated_paths
+
+    ###########################################################################
+    # Reporte de campos sin descripción
+    ###########################################################################
+
+    def _generate_missing_descriptions_report(
+        self,
+        project: ProjectMetadata,
+    ) -> Path:
+        """
+        Genera un archivo Excel adicional con el detalle de los
+        campos que no tienen descripción en ninguna fuente.
+
+        Incluye una hoja de resumen por esquema y una hoja de
+        detalle con cada campo (Esquema, Tabla, Campo, Tipo de dato).
+        """
+
+        missing: list[tuple[str, str, str, str]] = [
+            (
+                schema.schema_name,
+                table.table_name,
+                field.field_name,
+                field.data_type,
+            )
+            for schema in project.schemas
+            for table in schema.tables
+            for field in table.fields
+            if not field.description or field.description == VALUES["unknown"]
+        ]
+
+        total_fields = sum(
+            len(table.fields)
+            for schema in project.schemas
+            for table in schema.tables
+        )
+
+        by_schema: dict[str, int] = {}
+        for schema_name, *_ in missing:
+            by_schema[schema_name] = by_schema.get(schema_name, 0) + 1
+
+        workbook = Workbook()
+
+        self._write_missing_summary_sheet(
+            workbook.active,
+            total_fields,
+            missing,
+            by_schema,
+        )
+
+        self._write_missing_detail_sheet(
+            workbook.create_sheet("Detalle"),
+            missing,
+        )
+
+        output_path = self.config.output_file(
+            OUTPUT_FILENAMES["missing_descriptions"]
+        )
+
+        workbook.save(output_path)
+        workbook.close()
+
+        return output_path
+
+    @staticmethod
+    def _write_missing_summary_sheet(
+        sheet: Worksheet,
+        total_fields: int,
+        missing: list[tuple[str, str, str, str]],
+        by_schema: dict[str, int],
+    ) -> None:
+        """
+        Escribe la hoja de resumen del reporte de campos sin
+        descripción.
+        """
+
+        sheet.title = "Resumen"
+
+        sheet["A1"] = "Campos sin descripción — Resumen por esquema"
+        sheet["A1"].font = Font(bold=True, size=13, name="Arial")
+        sheet.merge_cells("A1:B1")
+
+        sheet["A3"] = "Total de campos documentados"
+        sheet["B3"] = total_fields
+
+        sheet["A4"] = "Total de campos sin descripción"
+        sheet["B4"] = len(missing)
+
+        sheet["A5"] = "Porcentaje sin descripción"
+        sheet["B5"] = (
+            round(100 * len(missing) / total_fields, 1)
+            if total_fields
+            else 0
+        )
+        sheet["C5"] = "%"
+
+        for row in (3, 4, 5):
+            sheet.cell(row=row, column=1).font = Font(name="Arial")
+            sheet.cell(row=row, column=2).font = Font(
+                name="Arial", bold=True
+            )
+
+        headers = ["Esquema", "Cantidad de campos sin descripción"]
+        for col_idx, header in enumerate(headers, start=1):
+            cell = sheet.cell(row=7, column=col_idx, value=header)
+            cell.font = Font(bold=True, name="Arial")
+
+        row_idx = 8
+        for schema_name, count in sorted(
+            by_schema.items(),
+            key=lambda item: item[1],
+            reverse=True,
+        ):
+            sheet.cell(row=row_idx, column=1, value=schema_name).font = (
+                Font(name="Arial")
+            )
+            sheet.cell(row=row_idx, column=2, value=count).font = Font(
+                name="Arial"
+            )
+            row_idx += 1
+
+        sheet.column_dimensions["A"].width = 35
+        sheet.column_dimensions["B"].width = 32
+
+    @staticmethod
+    def _write_missing_detail_sheet(
+        sheet: Worksheet,
+        missing: list[tuple[str, str, str, str]],
+    ) -> None:
+        """
+        Escribe la hoja de detalle del reporte de campos sin
+        descripción: un renglón por campo.
+        """
+
+        headers = ["Esquema", "Tabla", "Campo", "Tipo de dato"]
+        for col_idx, header in enumerate(headers, start=1):
+            cell = sheet.cell(row=1, column=col_idx, value=header)
+            cell.font = Font(bold=True, name="Arial")
+
+        for row_idx, (schema_name, table_name, field_name, data_type) in (
+            enumerate(missing, start=2)
+        ):
+            sheet.cell(row=row_idx, column=1, value=schema_name).font = (
+                Font(name="Arial")
+            )
+            sheet.cell(row=row_idx, column=2, value=table_name).font = (
+                Font(name="Arial")
+            )
+            sheet.cell(row=row_idx, column=3, value=field_name).font = (
+                Font(name="Arial")
+            )
+            sheet.cell(row=row_idx, column=4, value=data_type).font = (
+                Font(name="Arial")
+            )
+
+        for col, width in zip("ABCD", (30, 35, 30, 18)):
+            sheet.column_dimensions[col].width = width
+
+        sheet.freeze_panes = "A2"
 
     ###########################################################################
     # Generación por esquema

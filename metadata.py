@@ -443,6 +443,7 @@ FILE_EXTENSIONS = {
 
 OUTPUT_FILENAMES = {
     "dictionary": "Diccionario_Datos_DBGEODIG.xlsx",
+    "missing_descriptions": "Campos_Sin_Descripcion.xlsx",
     "log": "BDD_GEO_DICTIONARY.log",
 }
 
