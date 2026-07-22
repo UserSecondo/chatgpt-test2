@@ -68,7 +68,27 @@ class ExcelReaderSources:
             if not schema_name or not table_name or not field_name:
                 continue
 
+            if not self._is_documented(schema_name):
+                continue
+
             field = self._get_field(schema_name, table_name, field_name)
+
+            esri_type = row.get("type", "")
+            if esri_type:
+                field.esri_type = esri_type
+
+            esri_length = row.get("length", "")
+            if esri_length:
+                field.esri_length = str(esri_length)
+
+            self._assign_by_priority(
+                field,
+                "data_type",
+                "data_type_source",
+                "field_description",
+                esri_type,
+                "esri",
+            )
 
             self._set_if_value(
                 field,

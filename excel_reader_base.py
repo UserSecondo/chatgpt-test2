@@ -75,6 +75,13 @@ class ExcelReaderBase:
             FieldInfo,
         ] = {}
 
+        #
+        # RN-001: esquemas marcados para documentar
+        # (columna REVISION de la hoja Usuarios).
+        #
+
+        self._documented_schemas: Dict[str, bool] = {}
+
     ###########################################################################
     # API pública
     ###########################################################################
@@ -583,6 +590,15 @@ class ExcelReaderBase:
             return
 
         setattr(obj, attribute, value)
+
+    def _is_documented(self, schema_name: str) -> bool:
+        """
+        Indica si un esquema está marcado para documentar
+        (RN-001). Un esquema que nunca apareció en la hoja
+        Usuarios se considera no documentado.
+        """
+
+        return self._documented_schemas.get(schema_name, False)
 
     ###########################################################################
     # Estadísticas

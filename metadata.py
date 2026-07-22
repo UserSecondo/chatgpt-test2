@@ -256,7 +256,7 @@ COLUMN_MAPS = {
     "esri": {
         "ESQUEMA": LOGICAL_FIELDS["schema"],
         "DATASET": LOGICAL_FIELDS["dataset"],
-        "FEATURECLASS": LOGICAL_FIELDS["featureclass"],
+        "FEATURECLASS": LOGICAL_FIELDS["table"],
         "Campo": LOGICAL_FIELDS["field"],
         "Tipo": LOGICAL_FIELDS["type"],
         "Longitud/Precision": LOGICAL_FIELDS["length"],

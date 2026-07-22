@@ -69,6 +69,13 @@ class ExcelReaderOracle:
             if not schema_name:
                 continue
 
+            documented = row.get("revision", "") == "SI"
+
+            self._documented_schemas[schema_name] = documented
+
+            if not documented:
+                continue
+
             schema = self._get_schema(schema_name)
 
             responsible = row.get("responsible", "")
@@ -100,6 +107,9 @@ class ExcelReaderOracle:
             table_name = row.get("table", "")
 
             if not schema_name or not table_name:
+                continue
+
+            if not self._is_documented(schema_name):
                 continue
 
             table = self._get_table(schema_name, table_name)
@@ -136,16 +146,21 @@ class ExcelReaderOracle:
             if not schema_name or not table_name or not field_name:
                 continue
 
+            if not self._is_documented(schema_name):
+                continue
+
             field = self._get_field(schema_name, table_name, field_name)
 
             value = row.get("type", "")
             if value:
                 field.data_type = value
                 field.data_type_source = "oracle"
+                field.oracle_type = value
 
             value = row.get("length", "")
             if value:
                 field.length = value
+                field.oracle_length = str(value)
 
             value = row.get("nullable", "")
             if value:
@@ -226,6 +241,9 @@ class ExcelReaderOracle:
             if not schema_name or not table_name:
                 continue
 
+            if not self._is_documented(schema_name):
+                continue
+
             table = self._get_table(schema_name, table_name)
 
             self._set_if_value(
@@ -265,6 +283,9 @@ class ExcelReaderOracle:
             schema_name = row.get("schema", "")
 
             if not schema_name:
+                continue
+
+            if not self._is_documented(schema_name):
                 continue
 
             schema = self._get_schema(schema_name)

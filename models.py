@@ -49,6 +49,17 @@ class FieldInfo:
 
     data_type_source: str = ""
 
+    # Tipo y longitud específicos por fuente
+    # (la plantilla institucional los pide por separado)
+
+    oracle_type: str = ""
+
+    oracle_length: str = ""
+
+    esri_type: str = ""
+
+    esri_length: str = ""
+
     # Longitud
 
     length: str = ""

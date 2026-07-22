@@ -121,8 +121,11 @@ def main() -> int:
 
         logger.info("Generando diccionarios de datos...")
         writer = ExcelWriter(config)
-        writer.generate(resolved_metadata)
-        logger.info("Diccionarios generados correctamente.")
+        generated_files = writer.generate(resolved_metadata)
+        logger.info(
+            "Diccionarios generados correctamente: %s archivo(s).",
+            len(generated_files),
+        )
 
         # ---------------------------------------------------------------------
         # Resumen
