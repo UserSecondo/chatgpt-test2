@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from openpyxl.workbook.workbook import Workbook
 
-from metadata import INPUT_FILENAMES, SHEETS
+from metadata import SHEETS
 
 
 class ExcelReaderSources:
@@ -40,9 +40,7 @@ class ExcelReaderSources:
         Procesa el archivo de metadatos ESRI.
         """
 
-        workbook = self._open_workbook(
-            INPUT_FILENAMES["esri"]
-        )
+        workbook = self._open_workbook("esri")
 
         try:
             self._read_esri_fields(workbook)
@@ -84,15 +82,16 @@ class ExcelReaderSources:
                 row.get("domain", ""),
             )
 
-            self._set_if_value(
+            self._assign_by_priority(
                 field,
                 "description",
-                row.get("description", ""),
                 "description_source",
+                "field_description",
+                row.get("description", ""),
                 "esri",
             )
 
-            self._set_if_value(
+            self._assign_if_empty(
                 field,
                 "observations",
                 row.get("observations", ""),
@@ -107,9 +106,7 @@ class ExcelReaderSources:
         Procesa el archivo de metadatos MGN.
         """
 
-        workbook = self._open_workbook(
-            INPUT_FILENAMES["mgn"]
-        )
+        workbook = self._open_workbook("mgn")
 
         try:
             self._read_mgn(workbook)
@@ -120,36 +117,95 @@ class ExcelReaderSources:
         """
         Enriquece los campos utilizando la metadata MGN.
 
-        Esta fuente complementa la información existente,
-        sin aplicar reglas de prioridad.
+        A diferencia de Oracle o ESRI, el diccionario MGN documenta
+        campos estándar únicamente por NOMBRE (por ejemplo DPTO_CCDGO,
+        MPIO_CCDGO), sin indicar a qué esquema o tabla pertenecen.
+        Además cada hoja contiene varios bloques de datos, cada uno
+        con su propio encabezado 'CAMPOS'/'DESCRIPCIÓN' repetido.
+
+        Por eso la enriquece de forma global: cualquier campo del
+        proyecto cuyo nombre coincida recibe la descripción MGN
+        correspondiente, sin importar en qué esquema o tabla esté.
         """
 
-        for row in self._read_sheet(
-            workbook,
-            SHEETS["mgn"],
-            "mgn",
-        ):
-            schema_name = row.get("schema", "")
-            table_name = row.get("table", "")
-            field_name = row.get("field", "")
+        mgn_descriptions: dict[str, str] = {}
 
-            if not schema_name or not table_name or not field_name:
+        for sheet_name in SHEETS["mgn"]:
+
+            sheet = workbook[sheet_name]
+
+            for field_name, description in self._iter_mgn_blocks(sheet):
+
+                if not field_name or not description:
+                    continue
+
+                mgn_descriptions.setdefault(field_name, description)
+
+        if not mgn_descriptions:
+            return
+
+        for schema in self.project.schemas:
+            for table in schema.tables:
+                for field in table.fields:
+
+                    description = mgn_descriptions.get(field.field_name)
+
+                    if description is None:
+                        continue
+
+                    self._assign_by_priority(
+                        field,
+                        "description",
+                        "description_source",
+                        "field_description",
+                        description,
+                        "mgn",
+                    )
+
+    @staticmethod
+    def _iter_mgn_blocks(sheet):
+        """
+        Recorre una hoja MGN detectando cada bloque de datos.
+
+        Cada hoja documenta varias feature classes seguidas, y cada
+        una repite su propio encabezado 'CAMPOS' / 'DESCRIPCIÓN' en
+        una posición de columna que puede variar de una hoja a otra.
+        Esta función localiza cada encabezado y produce las filas de
+        datos que le siguen, ignorando los encabezados repetidos.
+        """
+
+        field_col = None
+        description_col = None
+
+        for row in sheet.iter_rows(values_only=True):
+
+            header_positions = {
+                str(value).strip().upper(): idx
+                for idx, value in enumerate(row)
+                if value is not None
+            }
+
+            if "CAMPOS" in header_positions and "DESCRIPCIÓN" in header_positions:
+                field_col = header_positions["CAMPOS"]
+                description_col = header_positions["DESCRIPCIÓN"]
                 continue
 
-            field = self._get_field(schema_name, table_name, field_name)
+            if field_col is None or description_col is None:
+                continue
 
-            self._set_if_value(
-                field,
-                "description",
-                row.get("description", ""),
-                "description_source",
-                "mgn",
-            )
+            if field_col >= len(row) or description_col >= len(row):
+                continue
 
-            self._set_if_value(
-                field,
-                "observations",
-                row.get("observations", ""),
+            field_name = row[field_col]
+
+            if field_name is None:
+                continue
+
+            description = row[description_col]
+
+            yield (
+                str(field_name).strip().upper(),
+                str(description).strip() if description is not None else "",
             )
 
     ###########################################################################

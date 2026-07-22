@@ -33,6 +33,7 @@ from config import Config
 from metadata import (
     COLUMN_MAPS,
     INPUT_FILENAMES,
+    PRIORITY,
     REQUIRED_COLUMNS,
     SHEETS,
 )
@@ -138,14 +139,19 @@ class ExcelReaderBase:
     @staticmethod
     def _worksheet_headers(
         sheet: Worksheet,
+        header_row: int = 1,
     ) -> list[str]:
         """
         Obtiene los encabezados de una hoja.
+
+        Algunas fuentes (por ejemplo el catálogo de esquemas)
+        anteponen un bloque de título antes de la fila real de
+        encabezados, por lo que `header_row` no siempre es 1.
         """
 
         headers = []
 
-        for cell in sheet[1]:
+        for cell in sheet[header_row]:
 
             value = cell.value
 
@@ -208,17 +214,18 @@ class ExcelReaderBase:
     def _iter_rows(
         self,
         sheet: Worksheet,
+        header_row: int = 1,
     ) -> Iterable[Dict[str, str]]:
         """
         Convierte una hoja Excel en un iterador
         de diccionarios.
         """
 
-        headers = self._worksheet_headers(sheet)
+        headers = self._worksheet_headers(sheet, header_row)
 
         for row in sheet.iter_rows(
 
-            min_row=2,
+            min_row=header_row + 1,
 
             values_only=True,
 
@@ -232,7 +239,45 @@ class ExcelReaderBase:
 
                 for i, value in enumerate(row)
 
+                if i < len(headers)
+
             }
+
+    ###########################################################################
+
+    @staticmethod
+    def _find_header_row(
+        sheet: Worksheet,
+        required_columns: tuple,
+        max_rows: int = 20,
+    ) -> int:
+        """
+        Localiza la fila donde están los encabezados reales,
+        buscando la primera fila que contenga todas las
+        columnas obligatorias.
+
+        Necesario porque algunas fuentes (por ejemplo el
+        catálogo de esquemas) anteponen un bloque de título
+        antes de los encabezados.
+        """
+
+        required_upper = {col.upper() for col in required_columns}
+
+        for row_number in range(1, max_rows + 1):
+
+            values = {
+                str(cell.value).strip().upper()
+                for cell in sheet[row_number]
+                if cell.value is not None
+            }
+
+            if required_upper.issubset(values):
+                return row_number
+
+        raise ValueError(
+            "No fue posible localizar la fila de encabezados "
+            f"en la hoja '{sheet.title}'."
+        )
 
     ###########################################################################
     # Validación
@@ -326,7 +371,12 @@ class ExcelReaderBase:
                 f"No existe la hoja '{sheet_name}'."
             ) from ex
 
-        headers = self._worksheet_headers(sheet)
+        header_row = self._find_header_row(
+            sheet,
+            REQUIRED_COLUMNS[mapping_name],
+        )
+
+        headers = self._worksheet_headers(sheet, header_row)
 
         self._validate_columns(
             headers,
@@ -335,7 +385,7 @@ class ExcelReaderBase:
 
         mapping = COLUMN_MAPS[mapping_name]
 
-        for row in self._iter_rows(sheet):
+        for row in self._iter_rows(sheet, header_row):
 
             logical = self._logical_row(
                 row,
@@ -458,6 +508,81 @@ class ExcelReaderBase:
             self._fields[key] = field
 
         return field
+
+    ###########################################################################
+    # Asignación con reglas de prioridad entre fuentes
+    ###########################################################################
+
+    @staticmethod
+    def _source_rank(source: str, priority_key: str) -> int:
+        """
+        Devuelve la posición de una fuente dentro del orden de
+        prioridad definido en metadata.PRIORITY.
+
+        Una fuente que no aparece en la lista se considera de
+        menor prioridad que cualquiera de las listadas.
+        """
+
+        order = PRIORITY.get(priority_key, ())
+
+        if source in order:
+            return order.index(source)
+
+        return len(order)
+
+    def _assign_by_priority(
+        self,
+        obj: object,
+        attribute: str,
+        source_attribute: str,
+        priority_key: str,
+        value: str,
+        source: str,
+    ) -> None:
+        """
+        Asigna `value` a `attribute` únicamente si la fuente que lo
+        provee tiene igual o mayor prioridad que la fuente que fijó
+        el valor actual (o si el atributo aún no tiene fuente).
+
+        Implementa las reglas RN-004, RN-005 y RN-006.
+        """
+
+        if not value:
+            return
+
+        current_source = getattr(obj, source_attribute, "")
+
+        if current_source:
+
+            current_rank = self._source_rank(current_source, priority_key)
+            new_rank = self._source_rank(source, priority_key)
+
+            if new_rank >= current_rank:
+                return
+
+        setattr(obj, attribute, value)
+        setattr(obj, source_attribute, source)
+
+    @staticmethod
+    def _assign_if_empty(
+        obj: object,
+        attribute: str,
+        value: str,
+    ) -> None:
+        """
+        Asigna `value` únicamente si el atributo aún no tiene
+        contenido. Utilizado para campos complementarios que no
+        tienen una regla de prioridad explícita (por ejemplo,
+        observaciones provistas tanto por ESRI como por MGN).
+        """
+
+        if not value:
+            return
+
+        if getattr(obj, attribute, ""):
+            return
+
+        setattr(obj, attribute, value)
 
     ###########################################################################
     # Estadísticas

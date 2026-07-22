@@ -57,7 +57,7 @@ def get_logger() -> logging.Logger:
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
 
-    log_dir = Path(DIRECTORIES["logs"])
+    log_dir = Path(__file__).resolve().parent / DIRECTORIES["logs"]
     log_dir.mkdir(parents=True, exist_ok=True)
 
     log_path = log_dir / OUTPUT_FILENAMES["log"]

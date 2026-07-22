@@ -122,8 +122,11 @@ SHEETS = {
     "oracle_fields":
         "Campos_Oracle",
 
+    "inventory":
+        "Inventario",
+
     "esri":
-        "Campos_ESRI",
+        "Detalle Tablas",
 
     "catalog":
         "Esquema_BD_DIG",
@@ -267,7 +270,7 @@ COLUMN_MAPS = {
     # -------------------------------------------------------------------------
 
     "mgn": {
-        "CAMPO": LOGICAL_FIELDS["field"],
+        "CAMPOS": LOGICAL_FIELDS["field"],
         "DESCRIPCIÓN": LOGICAL_FIELDS["description"],
     },
 
@@ -311,7 +314,7 @@ REQUIRED_COLUMNS = {
     ),
 
     "mgn": (
-        "CAMPO",
+        "CAMPOS",
     ),
 
 }

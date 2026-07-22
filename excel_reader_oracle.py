@@ -25,7 +25,7 @@ from __future__ import annotations
 
 from openpyxl.workbook.workbook import Workbook
 
-from metadata import INPUT_FILENAMES, SHEETS
+from metadata import SHEETS
 
 
 class ExcelReaderOracle:
@@ -42,9 +42,7 @@ class ExcelReaderOracle:
         Procesa el archivo de metadatos Oracle.
         """
 
-        workbook = self._open_workbook(
-            INPUT_FILENAMES["oracle"]
-        )
+        workbook = self._open_workbook("oracle")
 
         try:
             self._read_users(workbook)
@@ -74,9 +72,15 @@ class ExcelReaderOracle:
             schema = self._get_schema(schema_name)
 
             responsible = row.get("responsible", "")
-            if responsible:
-                schema.responsible = responsible
-                schema.responsible_source = "oracle"
+
+            self._assign_by_priority(
+                schema,
+                "responsible",
+                "responsible_source",
+                "responsible",
+                responsible,
+                "users",
+            )
 
     ###########################################################################
     # Tablas Oracle
@@ -101,9 +105,15 @@ class ExcelReaderOracle:
             table = self._get_table(schema_name, table_name)
 
             description = row.get("description", "")
-            if description:
-                table.description = description
-                table.description_source = "oracle"
+
+            self._assign_by_priority(
+                table,
+                "description",
+                "description_source",
+                "table_description",
+                description,
+                "oracle",
+            )
 
     ###########################################################################
     # Campos Oracle
@@ -142,9 +152,15 @@ class ExcelReaderOracle:
                 field.nullable = value
 
             value = row.get("description", "")
-            if value:
-                field.description = value
-                field.description_source = "oracle"
+
+            self._assign_by_priority(
+                field,
+                "description",
+                "description_source",
+                "field_description",
+                value,
+                "oracle",
+            )
 
     ###########################################################################
     # Utilidad de asignación
@@ -187,9 +203,7 @@ class ExcelReaderOracle:
         Procesa el inventario Oracle.
         """
 
-        workbook = self._open_workbook(
-            INPUT_FILENAMES["inventory"]
-        )
+        workbook = self._open_workbook("inventory")
 
         try:
             self._read_inventory(workbook)
@@ -231,9 +245,7 @@ class ExcelReaderOracle:
         Procesa el catálogo de esquemas.
         """
 
-        workbook = self._open_workbook(
-            INPUT_FILENAMES["catalog"]
-        )
+        workbook = self._open_workbook("catalog")
 
         try:
             self._read_catalog(workbook)
@@ -257,11 +269,12 @@ class ExcelReaderOracle:
 
             schema = self._get_schema(schema_name)
 
-            self._set_if_value(
+            self._assign_by_priority(
                 schema,
                 "responsible",
-                row.get("responsible", ""),
                 "responsible_source",
+                "responsible",
+                row.get("responsible", ""),
                 "catalog",
             )
 
