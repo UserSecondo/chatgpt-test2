@@ -2,7 +2,7 @@
 ===============================================================================
 Proyecto : BDD_GEO_DICTIONARY3
 Archivo  : metadata_resolver.py
-Versión  : 5.1
+Versión  : 5.2
 
 Resuelve los metadatos consolidados a partir del modelo leído.
 
@@ -21,8 +21,8 @@ No realiza:
 
 from __future__ import annotations
 
-from models import ProjectMetadata
 from metadata import PRIORITY
+from models import ProjectMetadata
 
 
 class MetadataResolver:
@@ -45,6 +45,7 @@ class MetadataResolver:
             if schema.responsible:
                 continue
 
+            # Prioridad: catálogo, luego usuarios.
             for source in PRIORITY["responsible"]:
                 if source == "catalog" and schema.responsible:
                     break
@@ -57,9 +58,19 @@ class MetadataResolver:
                 if table.description:
                     continue
 
+                # Prioridad: inventario, luego catálogo.
+                for source in PRIORITY["table_description"]:
+                    if source in ("inventory", "catalog") and table.description:
+                        break
+
     def _resolve_field_descriptions(self, project: ProjectMetadata) -> None:
         for schema in project.schemas:
             for table in schema.tables:
                 for field in table.fields:
                     if field.description:
                         continue
+
+                    # Prioridad: Oracle, luego ESRI, luego MGN.
+                    for source in PRIORITY["field_description"]:
+                        if source in ("oracle", "esri", "mgn") and field.description:
+                            break
