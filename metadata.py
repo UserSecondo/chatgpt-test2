@@ -3,7 +3,7 @@
 Proyecto : BDD_GEO_DICTIONARY3
 Archivo  : metadata.py
 Autor    : Nelson David Martínez
-Versión  : 5.0
+Versión  : 5.1
 
 Descripción
 -----------
@@ -39,7 +39,7 @@ from __future__ import annotations
 
 PROJECT_NAME = "BDD_GEO_DICTIONARY3"
 
-PROJECT_VERSION = "5.0"
+PROJECT_VERSION = "5.1"
 
 PROJECT_AUTHOR = "Nelson David Martínez"
 
@@ -122,7 +122,7 @@ SHEETS = {
     "oracle_fields":
         "Campos_Oracle",
 
-    "esri_fields":
+    "esri":
         "Campos_ESRI",
 
     "catalog":
@@ -199,61 +199,30 @@ COLUMN_MAPS = {
     # -------------------------------------------------------------------------
 
     "users": {
-
-        "USERNAME":
-            LOGICAL_FIELDS["schema"],
-
-        "RESPONSABLE":
-            LOGICAL_FIELDS["responsible"],
-
-        "REVISION":
-            "revision"
-
+        "USERNAME": LOGICAL_FIELDS["schema"],
+        "RESPONSABLE": LOGICAL_FIELDS["responsible"],
+        "REVISION": "revision",
     },
 
     # -------------------------------------------------------------------------
 
     "tables": {
-
-        "PROPIETARIO":
-            LOGICAL_FIELDS["schema"],
-
-        "TABLA":
-            LOGICAL_FIELDS["table"],
-
-        "DESCRIPCION":
-            LOGICAL_FIELDS["description"]
-
+        "PROPIETARIO": LOGICAL_FIELDS["schema"],
+        "TABLA": LOGICAL_FIELDS["table"],
+        "DESCRIPCION": LOGICAL_FIELDS["description"],
     },
 
     # -------------------------------------------------------------------------
 
     "oracle_fields": {
-
-        "Esquema":
-            LOGICAL_FIELDS["schema"],
-
-        "Tabla":
-            LOGICAL_FIELDS["table"],
-
-        "Campo":
-            LOGICAL_FIELDS["field"],
-
-        "Tipo":
-            LOGICAL_FIELDS["type"],
-
-        "Longitud/Precision":
-            LOGICAL_FIELDS["length"],
-
-        "Nulable":
-            LOGICAL_FIELDS["nullable"],
-
-        "Valor por defecto":
-            LOGICAL_FIELDS["default"],
-
-        "Descripcion":
-            LOGICAL_FIELDS["description"]
-
+        "Esquema": LOGICAL_FIELDS["schema"],
+        "Tabla": LOGICAL_FIELDS["table"],
+        "Campo": LOGICAL_FIELDS["field"],
+        "Tipo": LOGICAL_FIELDS["type"],
+        "Longitud/Precision": LOGICAL_FIELDS["length"],
+        "Nulable": LOGICAL_FIELDS["nullable"],
+        "Valor por defecto": LOGICAL_FIELDS["default"],
+        "Descripcion": LOGICAL_FIELDS["description"],
     },
 
     # -------------------------------------------------------------------------
@@ -261,19 +230,10 @@ COLUMN_MAPS = {
     # -------------------------------------------------------------------------
 
     "inventory": {
-
-        "PROPIETARIO":
-            LOGICAL_FIELDS["schema"],
-
-        "TABLA":
-            LOGICAL_FIELDS["table"],
-
-        "REGISTROS":
-            LOGICAL_FIELDS["records"],
-
-        "FECHA_CREACION":
-            LOGICAL_FIELDS["created"]
-
+        "PROPIETARIO": LOGICAL_FIELDS["schema"],
+        "TABLA": LOGICAL_FIELDS["table"],
+        "REGISTROS": LOGICAL_FIELDS["records"],
+        "FECHA_CREACION": LOGICAL_FIELDS["created"],
     },
 
     # -------------------------------------------------------------------------
@@ -281,51 +241,25 @@ COLUMN_MAPS = {
     # -------------------------------------------------------------------------
 
     "catalog": {
-
-        "NOMBRE DEL ESQUEMA":
-            LOGICAL_FIELDS["schema"],
-
-        "DESCRIPCION":
-            LOGICAL_FIELDS["description"],
-
-        "PERSONA(S) RESPONSABLE ESQUEMA":
-            LOGICAL_FIELDS["responsible"]
-
+        "NOMBRE DEL ESQUEMA": LOGICAL_FIELDS["schema"],
+        "DESCRIPCION": LOGICAL_FIELDS["description"],
+        "PERSONA(S) RESPONSABLE ESQUEMA": LOGICAL_FIELDS["responsible"],
     },
 
     # -------------------------------------------------------------------------
     # ESRI
     # -------------------------------------------------------------------------
 
-    "esri_fields": {
-
-        "ESQUEMA":
-            LOGICAL_FIELDS["schema"],
-
-        "DATASET":
-            LOGICAL_FIELDS["dataset"],
-
-        "FEATURECLASS":
-            LOGICAL_FIELDS["featureclass"],
-
-        "Campo":
-            LOGICAL_FIELDS["field"],
-
-        "Tipo":
-            LOGICAL_FIELDS["type"],
-
-        "Longitud/Precision":
-            LOGICAL_FIELDS["length"],
-
-        "Nulable":
-            LOGICAL_FIELDS["nullable"],
-
-        "Dominio":
-            LOGICAL_FIELDS["domain"],
-
-        "Descripcion":
-            LOGICAL_FIELDS["description"]
-
+    "esri": {
+        "ESQUEMA": LOGICAL_FIELDS["schema"],
+        "DATASET": LOGICAL_FIELDS["dataset"],
+        "FEATURECLASS": LOGICAL_FIELDS["featureclass"],
+        "Campo": LOGICAL_FIELDS["field"],
+        "Tipo": LOGICAL_FIELDS["type"],
+        "Longitud/Precision": LOGICAL_FIELDS["length"],
+        "Nulable": LOGICAL_FIELDS["nullable"],
+        "Dominio": LOGICAL_FIELDS["domain"],
+        "Descripcion": LOGICAL_FIELDS["description"],
     },
 
     # -------------------------------------------------------------------------
@@ -333,14 +267,9 @@ COLUMN_MAPS = {
     # -------------------------------------------------------------------------
 
     "mgn": {
-
-        "CAMPO":
-            LOGICAL_FIELDS["field"],
-
-        "DESCRIPCIÓN":
-            LOGICAL_FIELDS["description"]
-
-    }
+        "CAMPO": LOGICAL_FIELDS["field"],
+        "DESCRIPCIÓN": LOGICAL_FIELDS["description"],
+    },
 
 }
 
@@ -354,50 +283,36 @@ COLUMN_MAPS = {
 REQUIRED_COLUMNS = {
 
     "users": (
-
         "USERNAME",
-
     ),
 
     "tables": (
-
         "PROPIETARIO",
         "TABLA",
-
     ),
 
     "oracle_fields": (
-
         "Esquema",
         "Tabla",
         "Campo",
-
     ),
 
     "inventory": (
-
         "PROPIETARIO",
         "TABLA",
-
     ),
 
     "catalog": (
-
         "NOMBRE DEL ESQUEMA",
-
     ),
 
-    "esri_fields": (
-
+    "esri": (
         "Campo",
-
     ),
 
     "mgn": (
-
         "CAMPO",
-
-    )
+    ),
 
 }
 
@@ -412,28 +327,22 @@ PRIORITY = {
 
     # Responsable del esquema
     "responsible": (
-
         "catalog",
         "users",
-
     ),
 
     # Descripción de tabla
     "table_description": (
-
         "inventory",
         "catalog",
-
     ),
 
     # Descripción de campos
     "field_description": (
-
         "oracle",
         "esri",
         "mgn",
-
-    )
+    ),
 
 }
 
@@ -445,28 +354,13 @@ PRIORITY = {
 # =============================================================================
 
 BUSINESS_RULES = {
-
-    "RN-001":
-        "Solo documentar esquemas marcados para revisión.",
-
-    "RN-002":
-        "Solo documentar tablas pertenecientes a los esquemas seleccionados.",
-
-    "RN-003":
-        "Los archivos complementarios únicamente enriquecen información.",
-
-    "RN-004":
-        "El responsable del esquema se obtiene por prioridad de fuentes.",
-
-    "RN-005":
-        "La descripción del campo se obtiene por prioridad Oracle → ESRI → MGN.",
-
-    "RN-006":
-        "La descripción de la tabla se obtiene por prioridad Inventario → Catálogo.",
-
-    "RN-007":
-        "Si una fuente no tiene información continuar con la siguiente."
-
+    "RN-001": "Solo documentar esquemas marcados para revisión.",
+    "RN-002": "Solo documentar tablas pertenecientes a los esquemas seleccionados.",
+    "RN-003": "Los archivos complementarios únicamente enriquecen información.",
+    "RN-004": "El responsable del esquema se obtiene por prioridad de fuentes.",
+    "RN-005": "La descripción del campo se obtiene por prioridad Oracle → ESRI → MGN.",
+    "RN-006": "La descripción de la tabla se obtiene por prioridad Inventario → Catálogo.",
+    "RN-007": "Si una fuente no tiene información continuar con la siguiente.",
 }
 
 # =============================================================================
@@ -487,7 +381,7 @@ VALUES = {
 
     "none": None,
 
-    "unknown": "No disponible"
+    "unknown": "No disponible",
 
 }
 
@@ -498,28 +392,13 @@ VALUES = {
 # =============================================================================
 
 MESSAGES = {
-
-    "project_start":
-        "Iniciando generación del diccionario de datos.",
-
-    "loading_configuration":
-        "Cargando configuración del proyecto...",
-
-    "reading_sources":
-        "Leyendo archivos de entrada...",
-
-    "resolving_metadata":
-        "Resolviendo metadatos...",
-
-    "writing_dictionary":
-        "Generando diccionarios de datos...",
-
-    "finished":
-        "Proceso finalizado correctamente.",
-
-    "error":
-        "Se produjo un error durante la ejecución."
-
+    "project_start": "Iniciando generación del diccionario de datos.",
+    "loading_configuration": "Cargando configuración del proyecto...",
+    "reading_sources": "Leyendo archivos de entrada...",
+    "resolving_metadata": "Resolviendo metadatos...",
+    "writing_dictionary": "Generando diccionarios de datos...",
+    "finished": "Proceso finalizado correctamente.",
+    "error": "Se produjo un error durante la ejecución.",
 }
 
 # =============================================================================
@@ -527,15 +406,8 @@ MESSAGES = {
 # =============================================================================
 
 DATE_FORMATS = {
-
-    "report":
-
-        "%Y%m%d_%H%M%S",
-
-    "log":
-
-        "%Y-%m-%d %H:%M:%S"
-
+    "report": "%Y%m%d_%H%M%S",
+    "log": "%Y-%m-%d %H:%M:%S",
 }
 
 # =============================================================================
@@ -543,11 +415,8 @@ DATE_FORMATS = {
 # =============================================================================
 
 FILE_EXTENSIONS = {
-
     "excel": ".xlsx",
-
-    "log": ".log"
-
+    "log": ".log",
 }
 
 # =============================================================================
@@ -555,15 +424,8 @@ FILE_EXTENSIONS = {
 # =============================================================================
 
 OUTPUT_FILENAMES = {
-
-    "dictionary":
-
-        "Diccionario_Datos_DBGEODIG.xlsx",
-
-    "log":
-
-        "BDD_GEO_DICTIONARY.log"
-
+    "dictionary": "Diccionario_Datos_DBGEODIG.xlsx",
+    "log": "BDD_GEO_DICTIONARY.log",
 }
 
 # =============================================================================
@@ -573,41 +435,12 @@ OUTPUT_FILENAMES = {
 # =============================================================================
 
 ORACLE_TYPES = {
-
     "VARCHAR2": "VARCHAR2",
-
     "CHAR": "CHAR",
-
     "NUMBER": "NUMBER",
-
     "DATE": "DATE",
-
     "CLOB": "CLOB",
-
     "BLOB": "BLOB",
-
     "FLOAT": "FLOAT",
-
-    "TIMESTAMP": "TIMESTAMP"
-
+    "TIMESTAMP": "TIMESTAMP",
 }
-
-# =============================================================================
-# ESTADOS
-# =============================================================================
-
-STATUS = {
-
-    "pending": "PENDIENTE",
-
-    "processing": "PROCESANDO",
-
-    "completed": "COMPLETADO",
-
-    "error": "ERROR"
-
-}
-
-# =============================================================================
-# FIN DEL ARCHIVO
-# =============================================================================
