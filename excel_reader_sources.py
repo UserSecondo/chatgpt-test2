@@ -235,6 +235,80 @@ class ExcelReaderSources:
             )
 
     ###########################################################################
+    # Descripciones curadas manualmente
+    ###########################################################################
+
+    def _load_campos_descripciones(self) -> None:
+        """
+        Procesa el archivo de descripciones curadas manualmente
+        por el equipo del proyecto, a partir del reporte de
+        campos sin descripción (hoja 'Campos_Descripciones').
+        """
+
+        workbook = self._open_workbook("campos_descripciones")
+
+        try:
+            self._read_campos_descripciones(workbook)
+        finally:
+            workbook.close()
+
+    def _read_campos_descripciones(self, workbook: Workbook) -> None:
+        """
+        Enriquece los campos con las descripciones que el equipo
+        del proyecto completó manualmente. Funciona por NOMBRE de
+        campo, de forma global (igual que MGN y siglas_mgn).
+
+        Las filas marcadas explícitamente como "No Disponible" no
+        aportan información real y se ignoran.
+        """
+
+        sheet = workbook[SHEETS["campos_descripciones"]]
+
+        descriptions: dict[str, str] = {}
+
+        for row in sheet.iter_rows(min_row=2, values_only=True):
+
+            if len(row) < 3:
+                continue
+
+            field_name, _, description = row[0], row[1], row[2]
+
+            if not field_name or not description:
+                continue
+
+            field_name = str(field_name).strip().upper()
+            description = str(description).strip()
+
+            if description.upper() in ("NO DISPONIBLE", "NO DISPONIBLE."):
+                continue
+
+            if self._is_placeholder_description(description, field_name):
+                continue
+
+            descriptions.setdefault(field_name, description)
+
+        if not descriptions:
+            return
+
+        for schema in self.project.schemas:
+            for table in schema.tables:
+                for field in table.fields:
+
+                    description = descriptions.get(field.field_name)
+
+                    if description is None:
+                        continue
+
+                    self._assign_by_priority(
+                        field,
+                        "description",
+                        "description_source",
+                        "field_description",
+                        description,
+                        "campos_descripciones",
+                    )
+
+    ###########################################################################
     # Diccionario de siglas MGN
     ###########################################################################
 

@@ -90,6 +90,9 @@ INPUT_FILENAMES = {
     "operaciones_dane":
         "Siglas_Nombres_Catalogo_Operaciones_DANE.xlsx",
 
+    "campos_descripciones":
+        "Campos_Descripciones_Usuario.xlsx",
+
     "template":
         "Plantilla_Diccionario_Datos_DBGEODIG_AJUSTADO.xlsx"
 
@@ -155,7 +158,10 @@ SHEETS = {
         "Diccionario Siglas",
 
     "operaciones_dane":
-        "Operaciones DANE"
+        "Operaciones DANE",
+
+    "campos_descripciones":
+        "Campos_Descripciones"
 
 }
 
@@ -356,6 +362,7 @@ PRIORITY = {
     "field_description": (
         "oracle",
         "esri",
+        "campos_descripciones",
         "siglas_mgn",
         "mgn",
     ),

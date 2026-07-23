@@ -39,7 +39,7 @@ from datetime import datetime
 from pathlib import Path
 
 from openpyxl import Workbook, load_workbook
-from openpyxl.styles import Font
+from openpyxl.styles import Font, PatternFill
 from openpyxl.worksheet.worksheet import Worksheet
 
 from config import Config
@@ -49,6 +49,14 @@ from models import FieldInfo, ProjectMetadata, SchemaInfo, TableInfo
 _TEMPLATE_SHEET_NAME = "Diccionario_Datos"
 
 _FIRST_DATA_ROW = 8
+
+_NO_DESCRIPTION_TEXT = "Sin Descripción"
+
+_NO_DESCRIPTION_FILL = PatternFill(
+    start_color="FFFF00",
+    end_color="FFFF00",
+    fill_type="solid",
+)
 
 _INVALID_SHEET_CHARS = r"[\[\]:\*\?/\\]"
 
@@ -340,9 +348,14 @@ class ExcelWriter:
 
         sheet["B2"] = schema.schema_name
         sheet["B3"] = table.table_name
-        sheet["B4"] = table.description
         sheet["B5"] = schema.responsible
         sheet["B6"] = datetime.now().strftime("%Y-%m-%d")
+
+        if table.description and table.description != VALUES["unknown"]:
+            sheet["B4"] = table.description
+        else:
+            sheet["B4"] = _NO_DESCRIPTION_TEXT
+            sheet["B4"].fill = _NO_DESCRIPTION_FILL
 
         self._clear_placeholder_rows(sheet, template_last_row)
 
@@ -376,6 +389,10 @@ class ExcelWriter:
         de la plantilla institucional.
         """
 
+        has_description = (
+            field.description and field.description != VALUES["unknown"]
+        )
+
         values = [
             position,
             field.field_name,
@@ -386,11 +403,14 @@ class ExcelWriter:
             "",  # PK: sin fuente disponible actualmente.
             "",  # FK: sin fuente disponible actualmente.
             field.nullable,
-            field.description,
+            field.description if has_description else _NO_DESCRIPTION_TEXT,
         ]
 
         for col_idx, value in enumerate(values, start=1):
             sheet.cell(row=row_index, column=col_idx, value=value)
+
+        if not has_description:
+            sheet.cell(row=row_index, column=10).fill = _NO_DESCRIPTION_FILL
 
     @staticmethod
     def _clear_placeholder_rows(

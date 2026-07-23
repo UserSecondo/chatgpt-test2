@@ -101,6 +101,8 @@ class ExcelReaderBase:
 
         self._load_mgn()
 
+        self._load_campos_descripciones()
+
         self._load_siglas_mgn()
 
         self._load_operaciones_dane()

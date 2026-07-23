@@ -91,6 +91,9 @@ class Config:
             "operaciones_dane":
                 self.INPUT_DIR / "Siglas_Nombres_Catalogo_Operaciones_DANE.xlsx",
 
+            "campos_descripciones":
+                self.INPUT_DIR / "Campos_Descripciones_Usuario.xlsx",
+
             "template":
                 self.INPUT_DIR / "Plantilla_Diccionario_Datos_DBGEODIG_AJUSTADO.xlsx"
 
