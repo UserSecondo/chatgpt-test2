@@ -21,9 +21,13 @@ No realiza:
 
 from __future__ import annotations
 
+from openpyxl import load_workbook
 from openpyxl.workbook.workbook import Workbook
 
+from logger import get_logger
 from metadata import SHEETS
+
+logger = get_logger()
 
 
 class ExcelReaderSources:
@@ -306,6 +310,166 @@ class ExcelReaderSources:
                         "field_description",
                         description,
                         "campos_descripciones",
+                    )
+
+    ###########################################################################
+    # Diccionarios de referencia externos (info_referencia/)
+    ###########################################################################
+
+    # (ruta relativa a info_referencia/, nombre de hoja o None para todas)
+    _INFO_REFERENCIA_FILES = (
+        ("MGN/Diccionario_Datos_MGN_2025.xlsx", None),
+        ("MGN/Diccionario_Datos_MGN_2024.xlsx", None),
+        ("MGN/Diccionario_Datos_MGN_2023.xlsx", None),
+        ("MGN/Diccionario_Datos_MGN_2022.xlsx", None),
+        ("MGN/Diccionario_Datos_MGN_2021.xlsx", None),
+        ("MGN/Diccionario_Datos_MGN_2020.xlsx", None),
+        ("CNPV2018/DICCIONARIO_DATOS_CNPV2018.xlsx", "DICIONARIO"),
+        (
+            "CNPV2018/DICCIONARIODEDATOS_GEOCNPV_20190214_VERSION_ENTREGA.xlsx",
+            "DICIONARIO DATOS",
+        ),
+        ("CNUE/DiccionarioDeDatos_Vistas_CNUE2021.xlsx", "ReporteAtributos"),
+        ("CENU2024/Diccionario_base_estructural_UE_CENU.xlsx", "Hoja1"),
+        (
+            "Reg_Catastrales/MEDELLIN/Diccionario_Datos_Catastro_para_DANE_2019.xlsx",
+            "GISCAT",
+        ),
+        (
+            "MzHomologadas/DICCIONARIO_DATOS_HOMOLOGADA_2005_2019.xlsx",
+            "DICCIONARIO_DATOS",
+        ),
+        (
+            "MzHomologadas/DICCIONARIO_DATOS_HOMOLOGADA_2020_2021.xlsx",
+            "DICCIONARIO_DATOS",
+        ),
+        (
+            "MzHomologadas/DICCIONARIO_DATOS_HOMOLOGADA_2021_2022.xlsx",
+            "DICCIONARIO_DATOS",
+        ),
+        (
+            "Reg_Catastrales/MEDELLIN/MEDELLIN_DICCIONARIO_DATOS_2015.xlsx",
+            "Hoja1",
+        ),
+        (
+            "Reg_Catastrales/IGAC/igac - DICCIONARIO DE DATOS.xlsx",
+            "diccionario datos",
+        ),
+        (
+            "Reg_Catastrales/Gestores_Catastrales/20220930_DICCIONARIO_MOCE2021.xlsx",
+            "DICCIONARIO",
+        ),
+        ("MMRA/Diccionario_Datos_MMRA_2017.xlsx", "MMRA_2017"),
+        ("MMRA/Diccionario_Datos_MMRA_2018.xlsx", "MMRA_2017"),
+    )
+
+    _INFO_REFERENCIA_FIELD_ALIASES = {
+        "CAMPO",
+        "CAMPOS",
+        "VARIABLE",
+        "ATRIBUTO",
+        "NOMBRE CAMPO",
+    }
+
+    _INFO_REFERENCIA_DESCRIPTION_ALIASES = {
+        "DESCRIPCION",
+        "DESCRIPCIÓN",
+        "DESCRIPCIÓN BREVE",
+        "DESCRIPCION BREVE",
+        "CORRESPONDE A",
+    }
+
+    def _load_info_referencia(self) -> None:
+        """
+        Procesa los diccionarios de referencia externos que el
+        equipo del proyecto reunió en la carpeta info_referencia/
+        (diccionarios de otras operaciones y entidades: MGN
+        2020-2025, CNPV2018, CNUE2021, CENU2024, manzanas
+        homologadas, catastros municipales, MMRA).
+
+        Esta carpeta es opcional y no se distribuye en el
+        repositorio (pesa varios cientos de MB): si no está
+        presente, este paso simplemente se omite.
+        """
+
+        base_dir = self.config.BASE_DIR / "info_referencia"
+
+        if not base_dir.exists():
+            logger.warning(
+                "Carpeta info_referencia/ no encontrada; se omite "
+                "el enriquecimiento con diccionarios de referencia "
+                "externos."
+            )
+            return
+
+        descriptions: dict[str, str] = {}
+
+        for relative_path, sheet_name in self._INFO_REFERENCIA_FILES:
+
+            file_path = base_dir / relative_path
+
+            if not file_path.exists():
+                logger.warning(
+                    "No se encontró '%s' dentro de info_referencia/; "
+                    "se omite este archivo.",
+                    relative_path,
+                )
+                continue
+
+            workbook = load_workbook(
+                file_path,
+                read_only=True,
+                data_only=True,
+            )
+
+            try:
+                sheet_names = (
+                    [sheet_name] if sheet_name else workbook.sheetnames
+                )
+
+                for name in sheet_names:
+
+                    sheet = workbook[name]
+
+                    for field_name, description in (
+                        self._iter_generic_field_blocks(
+                            sheet,
+                            self._INFO_REFERENCIA_FIELD_ALIASES,
+                            self._INFO_REFERENCIA_DESCRIPTION_ALIASES,
+                        )
+                    ):
+                        if not field_name or not description:
+                            continue
+
+                        if self._is_placeholder_description(
+                            description,
+                            field_name,
+                        ):
+                            continue
+
+                        descriptions.setdefault(field_name, description)
+            finally:
+                workbook.close()
+
+        if not descriptions:
+            return
+
+        for schema in self.project.schemas:
+            for table in schema.tables:
+                for field in table.fields:
+
+                    description = descriptions.get(field.field_name)
+
+                    if description is None:
+                        continue
+
+                    self._assign_by_priority(
+                        field,
+                        "description",
+                        "description_source",
+                        "field_description",
+                        description,
+                        "info_referencia",
                     )
 
     ###########################################################################

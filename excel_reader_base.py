@@ -103,6 +103,8 @@ class ExcelReaderBase:
 
         self._load_campos_descripciones()
 
+        self._load_info_referencia()
+
         self._load_siglas_mgn()
 
         self._load_operaciones_dane()
@@ -609,6 +611,75 @@ class ExcelReaderBase:
             return False
 
         return value.strip().upper() == name.strip().upper()
+
+    @staticmethod
+    def _iter_generic_field_blocks(
+        sheet: Worksheet,
+        field_aliases: set,
+        description_aliases: set,
+    ):
+        """
+        Recorre una hoja detectando bloques campo/descripción,
+        sin asumir una posición fija de encabezado ni una sola
+        tabla por hoja.
+
+        Sirve tanto para hojas con una sola tabla (el "bloque" es
+        toda la hoja) como para hojas que repiten el encabezado
+        varias veces (una tabla o feature class por bloque, igual
+        que las hojas MGN).
+        """
+
+        field_col = None
+        description_col = None
+
+        for row in sheet.iter_rows(values_only=True):
+
+            header_positions = {
+                str(value).strip().upper(): idx
+                for idx, value in enumerate(row)
+                if value is not None
+            }
+
+            matched_field = next(
+                (
+                    header_positions[alias]
+                    for alias in field_aliases
+                    if alias in header_positions
+                ),
+                None,
+            )
+
+            matched_description = next(
+                (
+                    header_positions[alias]
+                    for alias in description_aliases
+                    if alias in header_positions
+                ),
+                None,
+            )
+
+            if matched_field is not None and matched_description is not None:
+                field_col = matched_field
+                description_col = matched_description
+                continue
+
+            if field_col is None or description_col is None:
+                continue
+
+            if field_col >= len(row) or description_col >= len(row):
+                continue
+
+            field_name = row[field_col]
+
+            if field_name is None:
+                continue
+
+            description = row[description_col]
+
+            yield (
+                str(field_name).strip().upper(),
+                str(description).strip() if description is not None else "",
+            )
 
     def _is_documented(self, schema_name: str) -> bool:
         """

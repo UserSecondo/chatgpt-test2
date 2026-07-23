@@ -364,6 +364,7 @@ PRIORITY = {
         "esri",
         "campos_descripciones",
         "siglas_mgn",
+        "info_referencia",
         "mgn",
     ),
 
