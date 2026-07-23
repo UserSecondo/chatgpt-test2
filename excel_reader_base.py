@@ -82,6 +82,13 @@ class ExcelReaderBase:
 
         self._documented_schemas: Dict[str, bool] = {}
 
+        # Responsable de TODOS los esquemas (documentados o no),
+        # para reportes de seguimiento con las áreas responsables.
+
+        self._all_schemas_responsible: Dict[str, str] = {}
+
+        self._all_schemas_responsible_source: Dict[str, str] = {}
+
     ###########################################################################
     # API pública
     ###########################################################################
@@ -108,6 +115,12 @@ class ExcelReaderBase:
         self._load_siglas_mgn()
 
         self._load_operaciones_dane()
+
+        self.project.all_schemas_documented = dict(self._documented_schemas)
+
+        self.project.all_schemas_responsible = dict(
+            self._all_schemas_responsible
+        )
 
         self._update_summary()
 
@@ -680,6 +693,37 @@ class ExcelReaderBase:
                 str(field_name).strip().upper(),
                 str(description).strip() if description is not None else "",
             )
+
+    def _assign_global_responsible(
+        self,
+        schema_name: str,
+        value: str,
+        source: str,
+    ) -> None:
+        """
+        Registra el responsable de un esquema para el reporte de
+        seguimiento, sin importar si el esquema está marcado para
+        documentar. Respeta la misma prioridad de fuentes que
+        _assign_by_priority (RN-004).
+        """
+
+        if not value:
+            return
+
+        current_source = self._all_schemas_responsible_source.get(
+            schema_name, ""
+        )
+
+        if current_source:
+
+            current_rank = self._source_rank(current_source, "responsible")
+            new_rank = self._source_rank(source, "responsible")
+
+            if new_rank >= current_rank:
+                return
+
+        self._all_schemas_responsible[schema_name] = value
+        self._all_schemas_responsible_source[schema_name] = source
 
     def _is_documented(self, schema_name: str) -> bool:
         """

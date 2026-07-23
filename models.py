@@ -26,7 +26,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import List
+from typing import Dict, List
 
 
 # =============================================================================
@@ -207,6 +207,14 @@ class ProjectMetadata:
     warnings: List[str] = field(default_factory=list)
 
     errors: List[str] = field(default_factory=list)
+
+    # Todos los esquemas encontrados en la hoja Usuarios/Catálogo,
+    # estén o no marcados para documentar (para reportes de
+    # seguimiento con las áreas responsables).
+
+    all_schemas_documented: Dict[str, bool] = field(default_factory=dict)
+
+    all_schemas_responsible: Dict[str, str] = field(default_factory=dict)
 
     @property
     def has_warnings(self) -> bool:

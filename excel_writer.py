@@ -108,6 +108,14 @@ class ExcelWriter:
 
         project.summary.generated_files += 1
 
+        followup_report_path = self._generate_schema_followup_report(
+            project
+        )
+
+        generated_paths.append(followup_report_path)
+
+        project.summary.generated_files += 1
+
         project.summary.end_time = datetime.now()
 
         if project.summary.start_time and project.summary.end_time:
@@ -116,6 +124,176 @@ class ExcelWriter:
             )
 
         return generated_paths
+
+    ###########################################################################
+    # Reporte de seguimiento por esquema y responsable
+    ###########################################################################
+
+    def _generate_schema_followup_report(
+        self,
+        project: ProjectMetadata,
+    ) -> Path:
+        """
+        Genera un archivo Excel con TODOS los esquemas de la base
+        de datos (estén o no marcados para documentar), su
+        responsable, y el detalle de campos sin descripción por
+        esquema — pensado para solicitar aclaraciones a las áreas
+        responsables.
+        """
+
+        schemas_by_name = {
+            schema.schema_name: schema for schema in project.schemas
+        }
+
+        rows = []
+
+        for schema_name, documented in sorted(
+            project.all_schemas_documented.items()
+        ):
+
+            responsible = project.all_schemas_responsible.get(
+                schema_name, ""
+            )
+
+            schema = schemas_by_name.get(schema_name)
+
+            total_tables = 0
+            total_fields = 0
+            missing_fields = 0
+
+            if schema is not None:
+
+                total_tables = len(schema.tables)
+
+                for table in schema.tables:
+                    for f in table.fields:
+                        total_fields += 1
+                        if (
+                            not f.description
+                            or f.description == VALUES["unknown"]
+                        ):
+                            missing_fields += 1
+
+            missing_pct = (
+                round(100 * missing_fields / total_fields, 1)
+                if total_fields
+                else ""
+            )
+
+            rows.append(
+                (
+                    schema_name,
+                    "SI" if documented else "NO",
+                    responsible,
+                    total_tables if schema is not None else "",
+                    total_fields if schema is not None else "",
+                    missing_fields if schema is not None else "",
+                    missing_pct,
+                )
+            )
+
+        missing_detail = [
+            (
+                schema.schema_name,
+                table.table_name,
+                field.field_name,
+                field.data_type,
+                project.all_schemas_responsible.get(
+                    schema.schema_name, ""
+                ),
+            )
+            for schema in project.schemas
+            for table in schema.tables
+            for field in table.fields
+            if not field.description
+            or field.description == VALUES["unknown"]
+        ]
+
+        workbook = Workbook()
+
+        self._write_schema_followup_sheet(workbook.active, rows)
+
+        self._write_missing_with_responsible_sheet(
+            workbook.create_sheet("Campos Sin Descripción"),
+            missing_detail,
+        )
+
+        output_path = self.config.output_file(
+            OUTPUT_FILENAMES["schema_followup"]
+        )
+
+        workbook.save(output_path)
+        workbook.close()
+
+        return output_path
+
+    @staticmethod
+    def _write_schema_followup_sheet(
+        sheet: Worksheet,
+        rows: list[tuple],
+    ) -> None:
+        """
+        Escribe la hoja con todos los esquemas, si están marcados
+        para documentar, su responsable, y el conteo de campos
+        sin descripción.
+        """
+
+        sheet.title = "Esquemas"
+
+        headers = [
+            "Esquema",
+            "¿Marcado para documentar?",
+            "Responsable",
+            "Total tablas",
+            "Total campos",
+            "Campos sin descripción",
+            "% sin descripción",
+        ]
+
+        for col_idx, header in enumerate(headers, start=1):
+            cell = sheet.cell(row=1, column=col_idx, value=header)
+            cell.font = Font(bold=True, name="Arial")
+
+        for row_idx, row_values in enumerate(rows, start=2):
+            for col_idx, value in enumerate(row_values, start=1):
+                cell = sheet.cell(row=row_idx, column=col_idx, value=value)
+                cell.font = Font(name="Arial")
+
+        widths = (30, 22, 40, 14, 14, 22, 18)
+        for col_idx, width in enumerate(widths, start=1):
+            sheet.column_dimensions[
+                sheet.cell(row=1, column=col_idx).column_letter
+            ].width = width
+
+        sheet.freeze_panes = "A2"
+
+    @staticmethod
+    def _write_missing_with_responsible_sheet(
+        sheet: Worksheet,
+        missing: list[tuple[str, str, str, str, str]],
+    ) -> None:
+        """
+        Escribe el detalle de campos sin descripción, incluyendo
+        el responsable del esquema al que pertenece cada campo.
+        """
+
+        headers = ["Esquema", "Tabla", "Campo", "Tipo de dato", "Responsable"]
+        for col_idx, header in enumerate(headers, start=1):
+            cell = sheet.cell(row=1, column=col_idx, value=header)
+            cell.font = Font(bold=True, name="Arial")
+
+        for row_idx, row_values in enumerate(missing, start=2):
+            for col_idx, value in enumerate(row_values, start=1):
+                cell = sheet.cell(row=row_idx, column=col_idx, value=value)
+                cell.font = Font(name="Arial")
+
+        widths = (30, 35, 30, 18, 40)
+        for col_idx, width in enumerate(widths, start=1):
+            sheet.column_dimensions[
+                sheet.cell(row=1, column=col_idx).column_letter
+            ].width = width
+
+        sheet.freeze_panes = "A2"
 
     ###########################################################################
     # Reporte de campos sin descripción

@@ -73,12 +73,18 @@ class ExcelReaderOracle:
 
             self._documented_schemas[schema_name] = documented
 
+            responsible = row.get("responsible", "")
+
+            self._assign_global_responsible(
+                schema_name,
+                responsible,
+                "users",
+            )
+
             if not documented:
                 continue
 
             schema = self._get_schema(schema_name)
-
-            responsible = row.get("responsible", "")
 
             self._assign_by_priority(
                 schema,
@@ -285,6 +291,12 @@ class ExcelReaderOracle:
 
             if not schema_name:
                 continue
+
+            self._assign_global_responsible(
+                schema_name,
+                row.get("responsible", ""),
+                "catalog",
+            )
 
             if not self._is_documented(schema_name):
                 continue
